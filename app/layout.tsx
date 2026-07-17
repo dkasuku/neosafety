@@ -14,6 +14,7 @@ import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import FloatingCart from "@/components/FloatingCart";
 import RouteLoader from "@/components/RouteLoader";
 import PullToRefresh from "@/components/PullToRefresh";
+import AutoReveal from "@/components/AutoReveal";
 import { getCategories } from "@/lib/catalog";
 import { headers } from "next/headers";
 

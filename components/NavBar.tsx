@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { megaMenu, type MenuItem, type Category } from "@/lib/data";
-import { Menu, ChevronDown, ChevronRight } from "./icons";
+import { Menu, ChevronDown, ChevronRight, X } from "./icons";
 
 function DesktopNode({ item, level }: { item: MenuItem; level: number }) {
   const kids = item.children;
@@ -28,19 +29,26 @@ function DesktopNode({ item, level }: { item: MenuItem; level: number }) {
   );
 }
 
-function MobileNode({ item, level, close }: { item: MenuItem; level: number; close: () => void }) {
+function MobileNode({ item, close }: { item: MenuItem; close: () => void }) {
+  const [expanded, setExpanded] = useState(false);
   const kids = item.children;
   return (
     <li>
-      <Link
-        href={item.href}
-        onClick={close}
-        className={`block py-2 ${level === 0 ? "font-display text-sm font-semibold text-white" : "text-sm text-white/70"}`}
-        style={{ paddingLeft: `${level * 14}px` }}
-      >
-        {item.label}
-      </Link>
-      {kids && <ul>{kids.map((ch) => <MobileNode key={ch.label} item={ch} level={level + 1} close={close} />)}</ul>}
+      <div className="flex items-center justify-between">
+        <Link href={item.href} onClick={close} className="block flex-1 py-2 font-display text-sm font-semibold text-white">
+          {item.label}
+        </Link>
+        {kids && (
+          <button onClick={() => setExpanded((v) => !v)} aria-label="Toggle submenu" className="p-2 text-white/70">
+            <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
+      {kids && expanded && (
+        <ul className="ml-3 border-l border-white/10 pl-3">
+          {kids.map((ch) => <MobileNode key={ch.label} item={ch} close={close} />)}
+        </ul>
+      )}
     </li>
   );
 }
@@ -49,6 +57,17 @@ export default function NavBar({ categories = [] }: { categories?: Category[] })
   const [openCats, setOpenCats] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
 
   return (
     <nav className="relative bg-navy text-white">
@@ -82,26 +101,41 @@ export default function NavBar({ categories = [] }: { categories?: Category[] })
         </button>
       </div>
 
-      {/* Mobile panel (fully nested) */}
-      {mobileOpen && (
-        <div className="max-h-[75vh] overflow-y-auto border-t border-white/10 bg-navy lg:hidden">
-          <ul className="container-x py-2">
-            {megaMenu.map((item) => <MobileNode key={item.label} item={item} level={0} close={() => setMobileOpen(false)} />)}
-            <li className="mt-2 border-t border-white/10 pt-2">
+      {/* Mobile panel (portal to body so it isn't trapped by SmoothScroll transforms) */}
+      {mounted && mobileOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex flex-col bg-navy text-white">
+          <div className="container-x flex items-center justify-between py-4">
+            <span className="font-display text-lg font-bold">Menu</span>
+            <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="p-2">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-8">
+            <ul className="space-y-1">
+              {megaMenu.map((item) => <MobileNode key={item.label} item={item} close={() => setMobileOpen(false)} />)}
+            </ul>
+            <div className="mt-4 border-t border-white/10 pt-4">
               <button
                 onClick={() => setCatsOpen((v) => !v)}
-                className="flex w-full items-center justify-between py-1 text-xs uppercase tracking-wide text-white/50"
+                className="flex w-full items-center justify-between py-2 text-xs uppercase tracking-wide text-white/50"
                 aria-expanded={catsOpen}
               >
                 <span>Categories</span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${catsOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className={`h-4 w-4 transition-transform ${catsOpen ? "rotate-180" : ""}`} />
               </button>
-              {catsOpen && categories.map((c) => (
-                <Link key={c.slug} href={`/category/${c.slug}`} onClick={() => setMobileOpen(false)} className="block py-1.5 pl-3 text-sm text-white/70">{c.name}</Link>
-              ))}
-            </li>
-          </ul>
-        </div>
+              {catsOpen && (
+                <ul className="mt-1 space-y-1">
+                  {categories.map((c) => (
+                    <li key={c.slug}>
+                      <Link href={`/category/${c.slug}`} onClick={() => setMobileOpen(false)} className="block rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10">{c.name}</Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </nav>
   );

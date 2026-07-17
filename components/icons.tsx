@@ -43,6 +43,10 @@ export const ChevronUp = (p: P) => (
 export const Menu = (p: P) => (
   <svg {...base(p)}><path d="M3 6h18M3 12h18M3 18h18" /></svg>
 );
+
+export const X = (p: P) => (
+  <svg {...base(p)}><path d="M18 6 6 18M6 6l12 12" /></svg>
+);
 export const ArrowRight = (p: P) => (
   <svg {...base(p)}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 );
