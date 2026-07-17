@@ -2,13 +2,14 @@ import Link from "next/link";
 import { getCategories, getAdverts } from "@/lib/catalog";
 import { contact } from "@/lib/data";
 import { AdCard } from "./AdvertStrip";
+import CollapsibleCategories from "./CollapsibleCategories";
 
 export default async function ShopSidebar({ active, compact }: { active?: string; compact?: boolean }) {
-  const [categories, ads] = await Promise.all([getCategories(), getAdverts("shop_side")]);
+  const categories = await getCategories();
+  const ads = compact ? [] : await getAdverts("shop_side");
   return (
     <aside className="w-full shrink-0 space-y-5 lg:w-64">
-      <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
-        <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wide text-navy">Categories</h3>
+      <CollapsibleCategories title="Categories">
         <ul className="space-y-1 text-sm">
           <li>
             <Link href="/ppe" className={`block rounded-md px-3 py-2 ${!active ? "bg-green/10 font-semibold text-green" : "text-navy/80 hover:bg-slate-50"}`}>All Products</Link>
@@ -19,7 +20,7 @@ export default async function ShopSidebar({ active, compact }: { active?: string
             </li>
           ))}
         </ul>
-      </div>
+      </CollapsibleCategories>
 
       {!compact && (
         <>

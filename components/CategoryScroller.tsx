@@ -17,9 +17,9 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
 
   useEffect(() => { update(); }, []);
 
-  const by = (dir: number) => ref.current?.scrollBy({ left: dir * 400, behavior: "smooth" });
+  const by = (dir: number) => ref.current?.scrollBy({ left: dir * 450, behavior: "smooth" });
 
-  // Drag-to-scroll for desktop + touch, but clicks on cards still pass through.
+  // Drag-to-scroll for desktop + touch, while keeping card clicks working.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -41,7 +41,7 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
     const onPointerMove = (e: PointerEvent) => {
       if (!isDown) return;
       const dx = e.clientX - startX;
-      if (!didDrag && Math.abs(dx) > 6) {
+      if (!didDrag && Math.abs(dx) > 4) {
         didDrag = true;
         setIsDragging(true);
         el.setPointerCapture(e.pointerId);
@@ -81,8 +81,8 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
     <div className="relative">
       <div
         ref={ref}
-        className={`no-scrollbar flex gap-3 overflow-x-auto px-1 pb-2 pt-1 ${isDragging ? "cursor-grabbing select-none" : "cursor-default"}`}
-        style={{ touchAction: "pan-x pan-y" }}
+        className={`category-scroll-area no-scrollbar flex gap-3 overflow-x-auto px-1 pb-2 pt-1 ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"}`}
+        style={{ touchAction: "pan-x pan-y", willChange: "scroll-position" }}
       >
         {children}
       </div>
@@ -101,16 +101,16 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
       <button
         onClick={() => by(-1)}
         aria-label="Scroll left"
-        className={`absolute -left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-navy shadow-float transition hover:bg-green hover:text-white lg:flex ${atStart ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        className={`absolute -left-2 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-navy shadow-float transition hover:bg-green hover:text-white sm:flex ${atStart ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
-        <ChevronRight className="h-5 w-5 rotate-180" />
+        <ChevronRight className="h-4 w-4 rotate-180" />
       </button>
       <button
         onClick={() => by(1)}
         aria-label="Scroll right"
-        className={`absolute -right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-navy shadow-float transition hover:bg-green hover:text-white lg:flex ${atEnd ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        className={`absolute -right-2 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white text-navy shadow-float transition hover:bg-green hover:text-white sm:flex ${atEnd ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-4 w-4" />
       </button>
     </div>
   );

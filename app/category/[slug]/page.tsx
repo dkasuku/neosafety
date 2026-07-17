@@ -5,7 +5,7 @@ import ShopSidebar from "@/components/ShopSidebar";
 import ProductGrid from "@/components/ProductGrid";
 import { ArrowRight, Wrench } from "@/components/icons";
 import { contact } from "@/lib/data";
-import { getCategory, getCategories, getProductsByCategory, getAdverts } from "@/lib/catalog";
+import { getCategory, getCategories, getProductsByCategory } from "@/lib/catalog";
 
 export async function generateStaticParams() {
   const cats = await getCategories();
@@ -24,18 +24,16 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   const category = await getCategory(params.slug);
   if (!category) notFound();
   const items = await getProductsByCategory(category.slug);
-  const [topAds, sideAds] = await Promise.all([getAdverts("shop_top"), getAdverts("shop_side")]);
-
   return (
     <main>
       <PageHero title={category.name} subtitle={category.blurb} crumb={category.name} />
       <div className="container-x flex flex-col gap-8 py-10 lg:flex-row">
-        <ShopSidebar active={category.slug} />
+        <ShopSidebar active={category.slug} compact />
         <div className="flex-1">
           {items.length > 0 ? (
             <>
               <p className="mb-5 text-sm text-slate-brand">{items.length} products</p>
-              <ProductGrid products={items} ads={[...topAds, ...sideAds]} />
+              <ProductGrid products={items} ads={[]} />
             </>
           ) : (
             <div className="grid items-center gap-8 rounded-2xl border border-slate-100 bg-white p-8 shadow-card md:grid-cols-2">

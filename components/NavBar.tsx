@@ -48,6 +48,7 @@ function MobileNode({ item, level, close }: { item: MenuItem; level: number; clo
 export default function NavBar({ categories = [] }: { categories?: Category[] }) {
   const [openCats, setOpenCats] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [catsOpen, setCatsOpen] = useState(true);
 
   return (
     <nav className="relative bg-navy text-white">
@@ -61,7 +62,7 @@ export default function NavBar({ categories = [] }: { categories?: Category[] })
               <ChevronDown className="h-4 w-4" />
             </Link>
             {openCats && (
-              <div className="absolute left-0 top-full z-50 hidden w-[420px] grid-cols-2 gap-1 rounded-md border border-slate-100 bg-white p-2 shadow-float lg:grid">
+              <div className="absolute left-0 top-full z-50 hidden w-[min(420px,calc(100vw-2rem))] grid-cols-1 rounded-md border border-slate-100 bg-white p-2 shadow-float md:grid md:grid-cols-2">
                 {categories.map((c) => (
                   <Link key={c.slug} href={`/category/${c.slug}`} className="rounded px-3 py-2 text-sm text-navy/80 hover:bg-slate-50 hover:text-green">{c.name}</Link>
                 ))}
@@ -87,8 +88,15 @@ export default function NavBar({ categories = [] }: { categories?: Category[] })
           <ul className="container-x py-2">
             {megaMenu.map((item) => <MobileNode key={item.label} item={item} level={0} close={() => setMobileOpen(false)} />)}
             <li className="mt-2 border-t border-white/10 pt-2">
-              <span className="block py-1 text-xs uppercase tracking-wide text-white/50">Categories</span>
-              {categories.map((c) => (
+              <button
+                onClick={() => setCatsOpen((v) => !v)}
+                className="flex w-full items-center justify-between py-1 text-xs uppercase tracking-wide text-white/50"
+                aria-expanded={catsOpen}
+              >
+                <span>Categories</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${catsOpen ? "rotate-180" : ""}`} />
+              </button>
+              {catsOpen && categories.map((c) => (
                 <Link key={c.slug} href={`/category/${c.slug}`} onClick={() => setMobileOpen(false)} className="block py-1.5 pl-3 text-sm text-white/70">{c.name}</Link>
               ))}
             </li>
