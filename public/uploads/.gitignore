@@ -1,0 +1,4 @@
+# Ignore uploaded images (they belong on a persistent volume in production),
+# but keep this folder in the repo.
+*
+!.gitignore

@@ -1,0 +1,13 @@
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Cors==4.0.1
+Flask-Migrate==4.0.7
+python-dotenv==1.0.1
+
+# Only needed if you use PostgreSQL (has prebuilt wheels for Python 3.13).
+# If you stay on the default SQLite, you can delete this line.
+psycopg2-binary>=2.9.10
+
+
+# Production WSGI server (used on Railway/any host)
+gunicorn==22.0.0
