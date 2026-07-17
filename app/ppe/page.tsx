@@ -1,7 +1,7 @@
 import PageHero from "@/components/PageHero";
 import ShopSidebar from "@/components/ShopSidebar";
 import ProductGrid from "@/components/ProductGrid";
-import { getProducts, getAdverts } from "@/lib/catalog";
+import { getProducts } from "@/lib/catalog";
 
 export const metadata = {
   title: "PPE Products | NEO Safety Supplies",
@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 export default async function PPEPage() {
-  const [products, topAds, sideAds] = await Promise.all([getProducts(), getAdverts("shop_top"), getAdverts("shop_side")]);
+  const products = await getProducts();
   return (
     <main>
       <PageHero title="PPE Products" subtitle="Personal protective equipment tested, certified and ready to ship across Kenya." />
@@ -18,7 +18,7 @@ export default async function PPEPage() {
         <ShopSidebar />
         <div className="flex-1">
           <p className="mb-5 text-sm text-slate-brand">{products.length} products</p>
-          <ProductGrid products={products} ads={[...topAds, ...sideAds]} />
+          <ProductGrid products={products} ads={[]} />
         </div>
       </div>
     </main>
