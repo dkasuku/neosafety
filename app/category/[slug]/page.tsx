@@ -4,7 +4,6 @@ import PageHero from "@/components/PageHero";
 import ShopSidebar from "@/components/ShopSidebar";
 import ProductGrid from "@/components/ProductGrid";
 import { ArrowRight, Wrench } from "@/components/icons";
-import { contact } from "@/lib/data";
 import { getCategory, getCategories, getProductsByCategory } from "@/lib/catalog";
 
 export async function generateStaticParams() {
@@ -28,7 +27,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     <main>
       <PageHero title={category.name} subtitle={category.blurb} crumb={category.name} />
       <div className="container-x flex flex-col gap-8 py-10 lg:flex-row">
-        <ShopSidebar active={category.slug} compact />
+        <ShopSidebar active={category.slug} compact categoriesOpen={false} />
         <div className="flex-1">
           {items.length > 0 ? (
             <>
@@ -46,7 +45,6 @@ export default async function CategoryPage({ params }: { params: { slug: string 
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Link href="/contact" className="btn-primary px-6 py-3 text-sm">Request a quote <ArrowRight className="h-4 w-4" /></Link>
-                  <a href={contact.phoneHref} className="btn-outline px-6 py-3 text-sm">{contact.phone}</a>
                 </div>
               </div>
               <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-navy to-navy-light p-10 text-center">

@@ -25,7 +25,7 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
     <main>
       <PageHero title={label} crumb="Search" subtitle={`${results.length} product${results.length === 1 ? "" : "s"} found${category ? ` in ${category.name}` : ""}.`} />
       <div className="container-x flex flex-col gap-8 py-10 lg:flex-row">
-        <ShopSidebar active={cat || undefined} compact />
+        <ShopSidebar active={cat || undefined} compact categoriesOpen={false} />
         <div className="flex-1">
           {results.length > 0 ? (
             <ProductGrid products={results} ads={[]} />

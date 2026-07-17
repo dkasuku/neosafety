@@ -5,12 +5,14 @@ import { ChevronDown } from "./icons";
 
 export default function CollapsibleCategories({
   title = "Categories",
+  defaultOpen = true,
   children,
 }: {
   title?: string;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-card">

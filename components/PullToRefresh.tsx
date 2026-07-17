@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollSmoother } from "gsap/ScrollSmoother";
 
 export default function PullToRefresh({ children }: { children: React.ReactNode }) {
   const [pulling, setPulling] = useState(false);
@@ -8,6 +10,7 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
   const pullingRef = useRef(false);
   const distanceRef = useRef(0);
   const startY = useRef(0);
+  const startX = useRef(0);
   const threshold = 80;
 
   useEffect(() => {
@@ -16,22 +19,33 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
   }, [pulling, distance]);
 
   useEffect(() => {
+    gsap.registerPlugin(ScrollSmoother);
+
     const isScrollableTarget = (target: EventTarget | null) => {
       if (!(target instanceof Element)) return false;
       return target.closest(".category-scroll-area") !== null;
     };
 
+    const atTop = () => {
+      const smoother = ScrollSmoother.get();
+      return (smoother ? smoother.scrollTop() : window.scrollY) <= 0;
+    };
+
     const onTouchStart = (e: TouchEvent) => {
-      if (window.scrollY > 0) return;
+      if (!atTop()) return;
       if (isScrollableTarget(e.target)) return;
+      startX.current = e.touches[0].clientX;
       startY.current = e.touches[0].clientY;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (window.scrollY > 0) return;
+      if (!atTop()) return;
       if (isScrollableTarget(e.target)) return;
-      const y = e.touches[0].clientY;
-      const d = Math.max(0, y - startY.current);
+      const dx = e.touches[0].clientX - startX.current;
+      const dy = e.touches[0].clientY - startY.current;
+      // Ignore horizontal-dominant gestures (e.g. category scrolling).
+      if (Math.abs(dx) > Math.abs(dy)) return;
+      const d = Math.max(0, dy);
       if (d > 0) {
         setPulling(true);
         setDistance(Math.min(d, threshold * 1.5));
@@ -62,7 +76,7 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
   return (
     <>
       {pulling && (
-        <div className="fixed left-0 right-0 top-0 z-[100] flex h-14 items-center justify-center text-sm font-semibold text-slate-brand">
+        <div className="fixed left-0 right-0 top-0 z-[100] flex h-14 items-center justify-center bg-white/80 text-sm font-semibold text-slate-brand backdrop-blur-sm">
           {distance > threshold ? "Release to refresh" : "Pull to refresh"}
         </div>
       )}

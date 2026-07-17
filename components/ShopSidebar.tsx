@@ -4,12 +4,12 @@ import { contact } from "@/lib/data";
 import { AdCard } from "./AdvertStrip";
 import CollapsibleCategories from "./CollapsibleCategories";
 
-export default async function ShopSidebar({ active, compact }: { active?: string; compact?: boolean }) {
+export default async function ShopSidebar({ active, compact, categoriesOpen = true }: { active?: string; compact?: boolean; categoriesOpen?: boolean }) {
   const categories = await getCategories();
   const ads = compact ? [] : await getAdverts("shop_side");
   return (
     <aside className="w-full shrink-0 space-y-5 lg:w-64">
-      <CollapsibleCategories title="Categories">
+      <CollapsibleCategories title="Categories" defaultOpen={categoriesOpen}>
         <ul className="space-y-1 text-sm">
           <li>
             <Link href="/ppe" className={`block rounded-md px-3 py-2 ${!active ? "bg-green/10 font-semibold text-green" : "text-navy/80 hover:bg-slate-50"}`}>All Products</Link>

@@ -21,9 +21,9 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       ScrollSmoother.create({
         wrapper: wrapper.current!,
         content: content.current!,
-        smooth: 1.5, // higher = more glide/lag
-        effects: true, // enables data-speed / data-lag parallax
-        normalizeScroll: true, // smoother behaviour on touch devices
+        smooth: 1.5,
+        effects: true,
+        normalizeScroll: false,
       });
     });
 

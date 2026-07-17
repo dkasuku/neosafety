@@ -15,7 +15,7 @@ export default async function WorkwearPage() {
     <main>
       <PageHero title="Workwear" subtitle="Coveralls, jackets and trousers built to perform — brandable with your logo." />
       <div className="container-x flex flex-col gap-8 py-10 lg:flex-row">
-        <ShopSidebar active="workwear" compact />
+        <ShopSidebar active="workwear" compact categoriesOpen={false} />
         <div className="flex-1">
           <p className="mb-5 text-sm text-slate-brand">{items.length} products</p>
           <ProductGrid products={items} ads={[]} />
