@@ -1,0 +1,26 @@
+No.,Product,Category,Unit Price (KSh),Old Price (KSh),Pieces (Qty),Amount (KSh)
+1,Cleaners Coverall,Cleaners Uniforms,1900,,1,1900
+2,Housekeeping Tunic,Cleaners Uniforms,1450,,1,1450
+3,Branded Office Polo,Corporate Uniforms,1150,,1,1150
+4,Corporate Shirt & Trouser,Corporate Uniforms,2200,,1,2200
+5,Warehouse Dust Coat,Dust Coats,1250,,1,1250
+6,White Dust Coat,Dust Coats,1300,,1,1300
+7,6kg Fire Extinguisher,Fire Safety,4200,4800,1,4200
+8,9kg Fire Extinguisher,Fire Safety,5600,,1,5600
+9,Cut-Resistant Work Gloves,Hand Protection,640,,1,640
+10,Impact-Resistant Gloves,Hand Protection,980,,1,980
+11,Industrial Safety Helmet,Head Protection,850,1100,1,850
+12,Vented Ratchet Hard Hat,Head Protection,1200,,1,1200
+13,Chef Jacket & Apron,Hospitality & Service,2100,,1,2100
+14,Waiter Service Uniform,Hospitality & Service,1950,,1,1950
+15,Industrial Uniform Set,Industrial Uniforms,3100,,1,3100
+16,Two-Tone Work Shirt & Trouser,Industrial Uniforms,2750,,1,2750
+17,Cotton Boiler Suit,Overalls,2400,,1,2400
+18,Navy Work Coverall,Overalls,2650,,1,2650
+19,Hi-Vis Reflector Vest,Reflector Jackets,720,900,1,720
+20,Hi-Vis Safety Apparel Set,Reflector Jackets,3800,,1,3800
+21,Reflective Bomber Jacket,Reflector Jackets,2900,,1,2900
+22,School Sports Kit,School Uniforms,1500,,1,1500
+23,School Uniform Set,School Uniforms,1800,,1,1800
+24,Security Guard Uniform,Security Uniforms,3200,,1,3200
+25,Supervisor Reflective Vest,Security Uniforms,1450,,1,1450
