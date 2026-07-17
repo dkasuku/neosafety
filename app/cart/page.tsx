@@ -129,21 +129,25 @@ export default function CartPage() {
         <div className="lg:col-span-2">
           <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-white shadow-card">
             {items.map((i) => (
-              <div key={i.slug} className="flex items-center gap-4 p-4">
-                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-white">
-                  <Image src={i.img} alt={i.name} width={120} height={120} className="h-full w-full object-contain" />
+              <div key={i.slug} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-white">
+                    <Image src={i.img} alt={i.name} width={120} height={120} className="h-full w-full object-contain" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-navy">{i.name}</h3>
+                    <p className="font-display text-sm font-bold text-green">{ksh(i.price)}</p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-semibold text-navy">{i.name}</h3>
-                  <p className="font-display text-sm font-bold text-green">{ksh(i.price)}</p>
+                <div className="flex items-center justify-between gap-3 sm:ml-auto">
+                  <div className="flex items-center rounded-md border border-slate-200">
+                    <button onClick={() => setQty(i.slug, i.qty - 1)} className="px-3 py-1.5 text-navy hover:bg-slate-50" aria-label="Decrease">−</button>
+                    <span className="w-8 text-center text-sm">{i.qty}</span>
+                    <button onClick={() => setQty(i.slug, i.qty + 1)} className="px-3 py-1.5 text-navy hover:bg-slate-50" aria-label="Increase">+</button>
+                  </div>
+                  <div className="font-display font-bold text-navy sm:w-24 sm:text-right">{ksh(i.price * i.qty)}</div>
+                  <button onClick={() => remove(i.slug)} className="text-sm text-slate-400 hover:text-red-500" aria-label="Remove">✕</button>
                 </div>
-                <div className="flex items-center rounded-md border border-slate-200">
-                  <button onClick={() => setQty(i.slug, i.qty - 1)} className="px-3 py-1.5 text-navy hover:bg-slate-50" aria-label="Decrease">−</button>
-                  <span className="w-8 text-center text-sm">{i.qty}</span>
-                  <button onClick={() => setQty(i.slug, i.qty + 1)} className="px-3 py-1.5 text-navy hover:bg-slate-50" aria-label="Increase">+</button>
-                </div>
-                <div className="hidden w-24 text-right font-display font-bold text-navy sm:block">{ksh(i.price * i.qty)}</div>
-                <button onClick={() => remove(i.slug)} className="text-sm text-slate-400 hover:text-red-500" aria-label="Remove">✕</button>
               </div>
             ))}
           </div>
@@ -151,7 +155,7 @@ export default function CartPage() {
         </div>
 
         {/* Checkout form + summary */}
-        <aside className="h-fit rounded-xl border border-slate-100 bg-white p-6 shadow-card">
+        <aside className="h-fit rounded-xl border border-slate-100 bg-white p-4 shadow-card sm:p-6">
           <h2 className="font-display text-lg font-bold text-navy">Checkout</h2>
           <div className="mt-4 space-y-2 border-b border-slate-100 pb-4 text-sm">
             <div className="flex justify-between text-slate-brand"><span>Subtotal ({items.reduce((n, i) => n + i.qty, 0)} items)</span><span className="font-semibold text-navy">{ksh(total)}</span></div>

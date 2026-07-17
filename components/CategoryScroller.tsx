@@ -4,22 +4,9 @@ import { ChevronRight } from "./icons";
 
 export default function CategoryScroller({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-
-  // stagger reveal on scroll into view
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => { if (e.isIntersecting) { setVisible(true); io.unobserve(e.target); } }),
-      { threshold: 0.08, rootMargin: "0px 0px -20% 0px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
 
   const update = () => {
     const el = ref.current;
@@ -27,11 +14,12 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
     setAtStart(el.scrollLeft <= 4);
     setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
   };
+
   useEffect(() => { update(); }, []);
 
-  const by = (dir: number) => ref.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
+  const by = (dir: number) => ref.current?.scrollBy({ left: dir * 400, behavior: "smooth" });
 
-  // drag-to-scroll for desktop + touch
+  // Drag-to-scroll for desktop + touch, but clicks on cards still pass through.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -39,29 +27,38 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
     let isDown = false;
     let startX = 0;
     let startScrollLeft = 0;
+    let didDrag = false;
+    let captured = false;
 
     const onPointerDown = (e: PointerEvent) => {
       isDown = true;
-      setIsDragging(true);
+      didDrag = false;
+      captured = false;
       startX = e.clientX;
       startScrollLeft = el.scrollLeft;
-      el.setPointerCapture(e.pointerId);
-      el.style.scrollSnapType = "none";
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (!isDown) return;
-      e.preventDefault();
       const dx = e.clientX - startX;
-      el.scrollLeft = startScrollLeft - dx;
+      if (!didDrag && Math.abs(dx) > 6) {
+        didDrag = true;
+        setIsDragging(true);
+        el.setPointerCapture(e.pointerId);
+        captured = true;
+      }
+      if (didDrag) {
+        e.preventDefault();
+        el.scrollLeft = startScrollLeft - dx;
+      }
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      if (!isDown) return;
       isDown = false;
+      if (captured) {
+        try { el.releasePointerCapture(e.pointerId); } catch {}
+      }
       setIsDragging(false);
-      el.releasePointerCapture(e.pointerId);
-      el.style.scrollSnapType = "";
       update();
     };
 
@@ -84,8 +81,8 @@ export default function CategoryScroller({ children }: { children: React.ReactNo
     <div className="relative">
       <div
         ref={ref}
-        className={`stagger no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-1 pb-2 pt-1 ${visible ? "is-visible" : ""} ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"}`}
-        style={{ touchAction: "pan-x" }}
+        className={`no-scrollbar flex gap-3 overflow-x-auto px-1 pb-2 pt-1 ${isDragging ? "cursor-grabbing select-none" : "cursor-default"}`}
+        style={{ touchAction: "pan-x pan-y" }}
       >
         {children}
       </div>

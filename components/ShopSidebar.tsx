@@ -3,7 +3,7 @@ import { getCategories, getAdverts } from "@/lib/catalog";
 import { contact } from "@/lib/data";
 import { AdCard } from "./AdvertStrip";
 
-export default async function ShopSidebar({ active }: { active?: string }) {
+export default async function ShopSidebar({ active, compact }: { active?: string; compact?: boolean }) {
   const [categories, ads] = await Promise.all([getCategories(), getAdverts("shop_side")]);
   return (
     <aside className="w-full shrink-0 space-y-5 lg:w-64">
@@ -21,13 +21,16 @@ export default async function ShopSidebar({ active }: { active?: string }) {
         </ul>
       </div>
 
-      <div className="rounded-xl bg-navy p-5 text-white">
-        <h4 className="font-display text-sm font-bold">Need help choosing?</h4>
-        <p className="mt-1 text-sm text-white/70">Talk to our safety experts.</p>
-        <a href={contact.phoneHref} className="mt-3 block font-display text-lg font-bold text-green-light">{contact.phone}</a>
-      </div>
-
-      {ads.map((a, i) => <AdCard key={i} ad={a} />)}
+      {!compact && (
+        <>
+          <div className="rounded-xl bg-navy p-5 text-white">
+            <h4 className="font-display text-sm font-bold">Need help choosing?</h4>
+            <p className="mt-1 text-sm text-white/70">Talk to our safety experts.</p>
+            <a href={contact.phoneHref} className="mt-3 block font-display text-lg font-bold text-green-light">{contact.phone}</a>
+          </div>
+          {ads.map((a, i) => <AdCard key={i} ad={a} />)}
+        </>
+      )}
     </aside>
   );
 }

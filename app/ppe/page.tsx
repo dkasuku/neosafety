@@ -15,7 +15,7 @@ export default async function PPEPage() {
     <main>
       <PageHero title="PPE Products" subtitle="Personal protective equipment tested, certified and ready to ship across Kenya." />
       <div className="container-x flex flex-col gap-8 py-10 lg:flex-row">
-        <ShopSidebar />
+        <ShopSidebar compact />
         <div className="flex-1">
           <p className="mb-5 text-sm text-slate-brand">{products.length} products</p>
           <ProductGrid products={products} ads={[]} />
