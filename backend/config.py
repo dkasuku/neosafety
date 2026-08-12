@@ -11,17 +11,29 @@ def _normalize_db_url(url: str) -> str:
     return url
 
 
+def _database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return _normalize_db_url(url)
+    # Falling back to SQLite when deployed is how an empty catalogue goes unnoticed:
+    # the API answers 200 with [] and the storefront quietly shows its static data.
+    # Fail loudly instead so a missing DATABASE_URL can never look like "no products".
+    if os.getenv("RAILWAY_ENVIRONMENT"):
+        raise RuntimeError(
+            "DATABASE_URL is not set. On Railway, reference the Postgres service "
+            "with ${{Postgres.DATABASE_URL}} -- refusing to start on SQLite."
+        )
+    # Local development with no setup required.
+    return "sqlite:///neosafety.db"
+
+
 class Config:
-    # Defaults to a local SQLite file so it runs with zero setup.
-    # For PostgreSQL, set DATABASE_URL in .env (e.g. postgresql://user:pass@localhost:5432/neosafety)
-    SQLALCHEMY_DATABASE_URI = _normalize_db_url(
-        os.getenv("DATABASE_URL", "sqlite:///neosafety.db")
-    )
+    SQLALCHEMY_DATABASE_URI = _database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("FLASK_SECRET", "change-me-in-production")
-    ADMIN_USER = os.getenv("ADMIN_USER", "admin")
-    ADMIN_PASS = os.getenv("ADMIN_PASS", "admin123")
-    # Shared bearer token the Next.js admin uses to call /api/admin (server-side only).
+    # There is no Flask-side admin login. The only admin is the Next.js panel at
+    # /admin, which authenticates with ADMIN_PASSWORD on the web service and then
+    # calls this API with the shared bearer token below.
     ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN", "neo-admin-local-token")
     CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "uploads"))
