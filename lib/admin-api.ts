@@ -12,12 +12,20 @@ async function req<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
       cache: "no-store",
     });
   } catch {
-    throw new Error("Could not reach the backend. Is the Flask server running?");
+    throw new Error(`Could not reach the backend at ${API}. Is the Flask server running and NEXT_PUBLIC_API_URL correct?`);
   }
   if (!r.ok) {
-    let msg = `Request failed (${r.status})`;
-    try { msg = (await r.json()).error || msg; } catch {}
-    throw new Error(msg);
+    let body: any = null;
+    try { body = await r.json(); } catch {}
+    if (r.status === 401) {
+      throw new Error("Backend rejected the admin token. Set the same ADMIN_API_TOKEN on the frontend and backend services.");
+    }
+    if (r.status === 404 && !(body && body.error)) {
+      // Not a Flask "record not found" -- the host has no admin API at all
+      // (e.g. Railway "Application not found" for a dead/renamed domain).
+      throw new Error(`No backend found at ${API} (404${body?.message ? `: ${body.message}` : ""}). Update NEXT_PUBLIC_API_URL on the frontend to the backend's current public URL and redeploy.`);
+    }
+    throw new Error((body && body.error) || `Request failed (${r.status})`);
   }
   if (r.status === 204) return null as T;
   return r.json();

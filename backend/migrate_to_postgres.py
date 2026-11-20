@@ -1,43 +1,37 @@
-"""Migrate data from the local SQLite database to PostgreSQL.
+"""Copy the local SQLite catalogue into PostgreSQL.
 
 Usage:
-    1. Install PostgreSQL locally and create a database named `neosafety`.
-    2. Set DATABASE_URL in backend/.env, e.g.:
-       DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/neosafety
-    3. Activate the backend virtual environment:
-       .venv\\Scripts\\activate
-    4. Run:
-       python migrate_to_postgres.py
+    # against the Railway database (use the PUBLIC proxy URL, not *.railway.internal,
+    # which only resolves from inside Railway):
+    python migrate_to_postgres.py --database-url "postgresql://postgres:PASS@HOST:PORT/railway" --replace
 
-The script drops existing PostgreSQL tables, recreates them from SQLAlchemy models,
-and copies all rows from SQLite while preserving IDs and relationships.
+    # or, relying on DATABASE_URL from backend/.env:
+    python migrate_to_postgres.py --replace
+
+Rows are copied with their original primary keys so foreign keys stay intact.
+Because the IDs are preserved, the script resets each table's identity sequence
+afterwards -- without that, the next INSERT from the admin panel would reuse id 1
+and fail with a duplicate key error.
+
+By default the script refuses to touch a target table that already holds rows.
+Pass --replace to clear the target tables first (DELETE, not DROP, so the schema
+and any live database connections are left alone).
 """
 
+import argparse
 import os
 import sys
+from datetime import date, datetime
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, MetaData, Table, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Boolean, Date, DateTime, MetaData, Table, create_engine, text
 
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SQLITE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'neosafety.db')}"
 
-POSTGRES_URL = os.getenv("DATABASE_URL")
-if not POSTGRES_URL:
-    print("Error: DATABASE_URL environment variable is not set.")
-    print("Add it to backend/.env, for example:")
-    print("DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/neosafety")
-    sys.exit(1)
-
-# Railway sometimes gives postgres:// which SQLAlchemy rejects.
-if POSTGRES_URL.startswith("postgres://"):
-    POSTGRES_URL = POSTGRES_URL.replace("postgres://", "postgresql://", 1)
-
-
-# Order matters because of foreign keys.
+# Parents before children -- order matters for the foreign keys.
 TABLE_ORDER = [
     "categories",
     "products",
@@ -50,104 +44,152 @@ TABLE_ORDER = [
 ]
 
 
-def _ensure_database_exists(url: str):
-    """Create the target PostgreSQL database if it does not exist."""
-    from sqlalchemy.engine.url import make_url
-    from sqlalchemy.exc import OperationalError
+def _normalize(url: str) -> str:
+    # Railway sometimes hands out postgres://, which SQLAlchemy no longer accepts.
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
 
-    parsed = make_url(url)
-    db_name = parsed.database
 
-    # Try connecting to the target database directly first. On Railway the DB
-    # already exists, so this succeeds immediately without touching the
-    # 'postgres' maintenance database (which cloud providers often block).
-    try:
-        engine = create_engine(url)
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        print(f"PostgreSQL database '{db_name}' already exists.")
-        engine.dispose()
+def _coerce(value, column):
+    """Make a SQLite value acceptable to the matching PostgreSQL column."""
+    if value is None:
+        return None
+    ctype = column.type
+    # SQLite keeps booleans as 0/1 integers; psycopg2 will not cast those.
+    if isinstance(ctype, Boolean):
+        return bool(value)
+    # Older rows can come back as ISO strings rather than datetime objects.
+    if isinstance(ctype, DateTime) and isinstance(value, str):
+        return datetime.fromisoformat(value)
+    if isinstance(ctype, Date) and not isinstance(ctype, DateTime) and isinstance(value, str):
+        return date.fromisoformat(value)
+    if isinstance(ctype, Date) and not isinstance(ctype, DateTime) and isinstance(value, datetime):
+        return value.date()
+    return value
+
+
+def _reset_sequence(conn, table: Table):
+    """Bump the identity sequence past the highest id we just inserted."""
+    if "id" not in table.columns:
         return
-    except OperationalError as exc:
-        error_msg = str(exc).lower()
-        # Only fall through to CREATE DATABASE for the specific "DB not found" error.
-        if "database" not in error_msg:
-            raise
-
-    # Target DB does not exist (common for a fresh local install).
-    # Connect to the maintenance database and create it.
-    maintenance_url = parsed.set(database="postgres")
-    engine = create_engine(maintenance_url, isolation_level="AUTOCOMMIT")
-    with engine.connect() as conn:
-        conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-        print(f"Created PostgreSQL database '{db_name}'.")
-    engine.dispose()
-
-
-def _create_tables_from_models(postgres_engine):
-    """Create tables directly from SQLAlchemy models (avoids triggering dbsync)."""
-    # Import models into a minimal app context so SQLAlchemy metadata is populated.
-    from flask import Flask
-    from config import Config
-    from extensions import db
-    import models  # noqa: F401  registers all models
-
-    app = Flask(__name__)
-    app.config.from_object(Config)
-    app.config["SQLALCHEMY_DATABASE_URI"] = POSTGRES_URL
-    db.init_app(app)
-    with app.app_context():
-        db.create_all()
+    seq = conn.execute(
+        text("SELECT pg_get_serial_sequence(:t, 'id')"), {"t": table.name}
+    ).scalar()
+    if not seq:
+        return
+    conn.execute(
+        text(
+            "SELECT setval(:seq, COALESCE((SELECT MAX(id) FROM %s), 0) + 1, false)"
+            % table.name
+        ),
+        {"seq": seq},
+    )
+    nxt = conn.execute(text("SELECT last_value FROM %s" % seq)).scalar()
+    print(f"    sequence reset -> next id {nxt}")
 
 
-def migrate():
-    _ensure_database_exists(POSTGRES_URL)
-
+def migrate(target_url: str, replace: bool):
     sqlite_engine = create_engine(SQLITE_URL)
-    postgres_engine = create_engine(POSTGRES_URL)
+    pg_engine = create_engine(target_url)
 
     sqlite_meta = MetaData()
     sqlite_meta.reflect(bind=sqlite_engine)
+    pg_meta = MetaData()
+    pg_meta.reflect(bind=pg_engine)
 
-    # Drop all existing tables in Postgres, then recreate from models.
-    print("Dropping existing PostgreSQL tables (if any)...")
-    postgres_meta = MetaData()
-    postgres_meta.reflect(bind=postgres_engine)
-    postgres_meta.drop_all(bind=postgres_engine)
+    missing = [t for t in TABLE_ORDER if t not in pg_meta.tables]
+    if missing:
+        print(f"Error: target database is missing tables: {', '.join(missing)}")
+        print("Start the Flask app against it once -- it creates the schema on boot.")
+        sys.exit(1)
 
-    print("Creating PostgreSQL tables from models...")
-    _create_tables_from_models(postgres_engine)
+    with pg_engine.connect() as conn:
+        # Safety check before we write anything.
+        if not replace:
+            occupied = []
+            for name in TABLE_ORDER:
+                n = conn.execute(text('SELECT COUNT(*) FROM "%s"' % name)).scalar()
+                if n:
+                    occupied.append(f"{name} ({n} rows)")
+            if occupied:
+                print("Error: the target database already has data:")
+                for o in occupied:
+                    print("  -", o)
+                print("\nRe-run with --replace to overwrite it.")
+                sys.exit(1)
 
-    # Re-read metadata after create_all.
-    postgres_meta = MetaData()
-    postgres_meta.reflect(bind=postgres_engine)
-
-    Session = sessionmaker(bind=sqlite_engine)
-    sqlite_session = Session()
-
-    with postgres_engine.connect() as conn:
-        for table_name in TABLE_ORDER:
-            if table_name not in sqlite_meta.tables:
-                print(f"Skipping {table_name}: not found in SQLite.")
-                continue
-
-            sqlite_table = sqlite_meta.tables[table_name]
-            rows = sqlite_session.execute(sqlite_table.select()).mappings().all()
-
-            if not rows:
-                print(f"{table_name}: no rows to migrate.")
-                continue
-
-            postgres_table = Table(table_name, postgres_meta, autoload_with=postgres_engine)
-            batch = [{k: row[k] for k in row.keys()} for row in rows]
-
-            conn.execute(postgres_table.insert(), batch)
+        if replace:
+            print("Clearing target tables...")
+            for name in reversed(TABLE_ORDER):  # children first
+                conn.execute(text('DELETE FROM "%s"' % name))
             conn.commit()
-            print(f"{table_name}: migrated {len(batch)} rows.")
 
-    sqlite_session.close()
-    print("\nMigration complete!")
+        total = 0
+        for name in TABLE_ORDER:
+            pg_table = pg_meta.tables[name]
+            src = sqlite_meta.tables.get(name)
+            if src is None:
+                print(f"{name}: not present in SQLite, skipped.")
+                continue
+
+            rows = conn_rows(sqlite_engine, src)
+            if not rows:
+                print(f"{name}: no rows.")
+                _reset_sequence(conn, pg_table)
+                continue
+
+            # Only copy columns that exist on both sides.
+            shared = [c for c in pg_table.columns.keys() if c in src.columns.keys()]
+            dropped = [c for c in src.columns.keys() if c not in shared]
+            if dropped:
+                print(f"{name}: ignoring SQLite-only columns {dropped}")
+
+            batch = [
+                {c: _coerce(row[c], pg_table.columns[c]) for c in shared}
+                for row in rows
+            ]
+            conn.execute(pg_table.insert(), batch)
+            conn.commit()
+            total += len(batch)
+            print(f"{name}: copied {len(batch)} rows.")
+            _reset_sequence(conn, pg_table)
+            conn.commit()
+
+    print(f"\nMigration complete -- {total} rows copied.")
+
+
+def conn_rows(engine, table: Table):
+    with engine.connect() as c:
+        return c.execute(table.select()).mappings().all()
 
 
 if __name__ == "__main__":
-    migrate()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--database-url",
+        default=os.getenv("DATABASE_URL"),
+        help="Target PostgreSQL URL (defaults to DATABASE_URL from the environment).",
+    )
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Delete existing rows in the target tables before copying.",
+    )
+    args = parser.parse_args()
+
+    if not args.database_url:
+        print("Error: no target database. Pass --database-url or set DATABASE_URL.")
+        sys.exit(1)
+
+    url = _normalize(args.database_url)
+    if ".railway.internal" in url:
+        print("Error: *.railway.internal only resolves from inside Railway.")
+        print("Use the Postgres service's DATABASE_PUBLIC_URL instead.")
+        sys.exit(1)
+
+    if not os.path.exists(os.path.join(BASE_DIR, "instance", "neosafety.db")):
+        print(f"Error: no SQLite database at {SQLITE_URL}")
+        sys.exit(1)
+
+    migrate(url, args.replace)

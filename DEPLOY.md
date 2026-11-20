@@ -1,14 +1,28 @@
 # NEO Safety Supplies — Deployment Guide (Railway + Namecheap)
 
-This project is three parts that go live as **two web services + one database**:
+This project is three parts that go live as **two web services + one database**.
+Live setup (Railway project `dependable-learning`, environment `production`):
 
-| Part | Tech | Railway service | Public URL (example) |
-|------|------|-----------------|----------------------|
-| Storefront **and** admin panel | Next.js | `web` (repo root) | `https://www.neosafetysupplies.com` (admin at `/admin`) |
-| API | Flask | `api` (root dir = `backend`) | `https://api.neosafetysupplies.com` |
-| Database | PostgreSQL | Railway Postgres plugin | internal |
+| Part | Tech | Railway service | Public URL |
+|------|------|-----------------|------------|
+| Storefront **and** admin panel | Next.js | `frontend` (repo root) | `https://neosafetysupplies.com` (admin at `/admin`) |
+| API | Flask | `backend` (root dir = `backend`) | `https://backend-production-39eb6.up.railway.app` |
+| Database | PostgreSQL | `Postgres` | internal only |
 
 The admin is part of the Next.js app, so it deploys **with** the storefront — it is not a separate service.
+
+> **There is only one admin.** It is the Next.js panel at `/admin`, which signs in
+> with a single password (`ADMIN_PASSWORD` on the `frontend` service — no username).
+> Flask has no admin login of its own; it only exposes the token-protected
+> `/api/admin` REST API that the panel calls server-side.
+
+> **The API must have a public domain.** Both the browser (cart, reviews, order
+> tracking) and the Next.js server call it, so private networking
+> (`*.railway.internal`) is not enough. If the `backend` service has no domain
+> under **Settings → Networking**, the admin will report
+> *"Could not reach the backend"* and the storefront will quietly serve the static
+> catalogue from `lib/data.ts` instead — looking perfectly healthy while showing
+> nothing from the database.
 
 ---
 
@@ -44,10 +58,13 @@ The admin is part of the Next.js app, so it deploys **with** the storefront — 
    | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
    | `FLASK_SECRET` | your generated secret |
    | `ADMIN_API_TOKEN` | your generated token (must match the web service) |
-   | `CORS_ORIGINS` | `https://www.neosafetysupplies.com,https://neosafetysupplies.com` |
+   | `CORS_ORIGINS` | `https://neosafetysupplies.com` |
    | `WHATSAPP_NUMBER` | `254707866446` |
 
-5. **Networking → Generate Domain** (or add the custom `api.` domain in step 5).
+   Do **not** set `ADMIN_USER` / `ADMIN_PASS` / `ADMIN_PASSWORD` here. Flask has no
+   admin login; those variables do nothing and only make it look like a second admin.
+
+5. **Networking → Generate Domain.** This is required, not optional — see the note above.
 6. On first boot the app **auto-creates all tables**. To load the demo catalogue,
    open the service's **shell/one-off command** and run:
    ```
@@ -56,12 +73,17 @@ The admin is part of the Next.js app, so it deploys **with** the storefront — 
    (Skip this if you'd rather add your own products in the admin.)
 
    **Migrating from local SQLite:** If you have existing data in `backend/instance/neosafety.db`,
-   set the backend's `DATABASE_URL` to the Railway Postgres URL locally, then run:
+   run this **from your machine**, pointing at the Postgres service's
+   `DATABASE_PUBLIC_URL` (found under the Postgres service → Variables):
    ```
-   python migrate_to_postgres.py
+   python migrate_to_postgres.py --database-url "postgresql://postgres:PASS@HOST.proxy.rlwy.net:PORT/railway" --replace
    ```
-   This copies all existing categories, products, orders, reviews, and settings into PostgreSQL.
+   Use the **public** URL. `postgres.railway.internal` only resolves from inside
+   Railway, so running the migration against it from a laptop fails to connect and
+   copies nothing — the script now refuses that hostname rather than appearing to work.
 7. Health check: visit `https://<backend-url>/api/health` → should return `{"ok": true}`.
+   Then check `https://<backend-url>/api/products` actually returns rows. A `200 []`
+   here is the signature of an empty database, and the storefront will hide it.
 
 ---
 
@@ -74,12 +96,16 @@ The admin is part of the Next.js app, so it deploys **with** the storefront — 
 
    | Variable | Value |
    |----------|-------|
-   | `NEXT_PUBLIC_API_URL` | `https://api.neosafetysupplies.com` (your backend URL) |
-   | `NEXT_PUBLIC_SITE_URL` | `https://www.neosafetysupplies.com` |
-   | `ADMIN_PASSWORD` | your chosen admin password |
+   | `NEXT_PUBLIC_API_URL` | the backend's public URL, e.g. `https://backend-production-39eb6.up.railway.app` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://neosafetysupplies.com` |
+   | `ADMIN_PASSWORD` | your chosen admin password (this is the whole `/admin` login) |
    | `ADMIN_SESSION_TOKEN` | your generated token |
    | `ADMIN_API_TOKEN` | **same value** as the backend's `ADMIN_API_TOKEN` |
    | `NODE_ENV` | `production` |
+
+   `NEXT_PUBLIC_*` values are baked in at **build** time, so after changing either of
+   them you must trigger a rebuild — `railway redeploy --service frontend --from-source`.
+   Restarting the service is not enough.
 
 5. **Persistent uploads (important).** Admin image uploads are written to
    `public/uploads`. Railway's disk is wiped on every redeploy, so add a **Volume**:
@@ -90,21 +116,28 @@ The admin is part of the Next.js app, so it deploys **with** the storefront — 
 
 ## 4. Domains (Namecheap → Railway)
 
-**In Railway**, for each service open **Settings → Networking → Custom Domain**:
-- Web service: add `www.neosafetysupplies.com` (and optionally the apex).
-- API service: add `api.neosafetysupplies.com`.
-Railway shows a **CNAME target** for each (e.g. `abcd.up.railway.app`).
+**Current live DNS:** only the apex is set up — `neosafetysupplies.com` CNAMEs to
+`d0d0xt5m.up.railway.app` (the `frontend` service). Neither `www.` nor `api.` exists,
+so the API is reached on its generated Railway domain instead.
 
-**In Namecheap** → Domain List → **Manage → Advanced DNS → Add New Record**:
+To move the API onto `api.neosafetysupplies.com` (optional — the generated domain
+works fine):
 
-| Type | Host | Value |
-|------|------|-------|
-| CNAME Record | `www` | the web service's Railway target |
-| CNAME Record | `api` | the API service's Railway target |
-| URL Redirect Record | `@` | `https://www.neosafetysupplies.com` (Permanent) |
+1. **Railway** → `backend` service → **Settings → Networking → Custom Domain** →
+   add `api.neosafetysupplies.com`. Railway shows a **CNAME target**.
+2. **Namecheap** → Domain List → **Manage → Advanced DNS → Add New Record**:
 
-(The apex redirect is used because Namecheap can't CNAME the bare domain. It sends
-`neosafetysupplies.com` → `www.neosafetysupplies.com`.)
+   | Type | Host | Value |
+   |------|------|-------|
+   | CNAME Record | `api` | the backend service's Railway target |
+   | CNAME Record | `www` | the frontend service's Railway target (optional) |
+
+3. Update `NEXT_PUBLIC_API_URL` on `frontend` and `CORS_ORIGINS` on `backend`, then
+   **rebuild the frontend**.
+
+Do not point `NEXT_PUBLIC_API_URL` at a hostname before the DNS record exists — an
+unresolvable API host is indistinguishable from an outage, and the storefront will
+silently fall back to static data.
 
 DNS takes a few minutes to a few hours. Railway issues HTTPS certificates automatically.
 After it resolves, double-check the backend `CORS_ORIGINS` and the web

@@ -12,24 +12,37 @@ function normImg(img?: string): string {
 }
  // seconds — admin edits appear on the site within this window
 
+// The static catalogue below is a last-resort fallback so the storefront still
+// renders if the API blips. It looks identical to real data, so an outage is
+// invisible unless we say something — always log why we fell back.
+function fellBack(path: string, why: string) {
+  console.warn(`[catalog] ${path} -> using static fallback (${why}). API_URL=${API_URL}`);
+}
+
 async function apiGet<T>(path: string): Promise<T | null> {
   try {
     const r = await fetch(`${API_URL}${path}`, { next: { revalidate: REVALIDATE } });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      fellBack(path, `HTTP ${r.status}`);
+      return null;
+    }
     return (await r.json()) as T;
-  } catch {
+  } catch (e) {
+    fellBack(path, e instanceof Error ? e.message : "unreachable");
     return null;
   }
 }
 
 export async function getCategories(): Promise<Category[]> {
   const data = await apiGet<Category[]>("/api/categories");
+  if (Array.isArray(data) && !data.length) fellBack("/api/categories", "API returned 0 rows");
   const list = Array.isArray(data) && data.length ? data : STATIC_CATEGORIES;
   return list.map((c) => ({ ...c, img: normImg(c.img) }));
 }
 
 export async function getProducts(): Promise<Product[]> {
   const data = await apiGet<Product[]>("/api/products");
+  if (Array.isArray(data) && !data.length) fellBack("/api/products", "API returned 0 rows");
   const list = Array.isArray(data) && data.length ? data : STATIC_PRODUCTS;
   return list.map((p) => ({ ...p, img: normImg(p.img) }));
 }
