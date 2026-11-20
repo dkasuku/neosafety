@@ -1,4 +1,5 @@
 import os
+import secrets
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,11 +34,13 @@ def _database_url() -> str:
 class Config:
     SQLALCHEMY_DATABASE_URI = _database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.getenv("FLASK_SECRET", "change-me-in-production")
+    # No guessable defaults. A missing FLASK_SECRET gets a random per-process key;
+    # a missing ADMIN_API_TOKEN disables the admin API (every call -> 401).
+    SECRET_KEY = os.getenv("FLASK_SECRET") or secrets.token_hex(32)
     # There is no Flask-side admin login. The only admin is the Next.js panel at
     # /admin, which authenticates with ADMIN_PASSWORD on the web service and then
     # calls this API with the shared bearer token below.
-    ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN", "neo-admin-local-token")
+    ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN") or None
     CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "uploads"))
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
