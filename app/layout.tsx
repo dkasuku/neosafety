@@ -15,6 +15,7 @@ import FloatingCart from "@/components/FloatingCart";
 import RouteLoader from "@/components/RouteLoader";
 import PullToRefresh from "@/components/PullToRefresh";
 import AutoReveal from "@/components/AutoReveal";
+import VisitTracker from "@/components/VisitTracker";
 import { getCategories } from "@/lib/catalog";
 import { headers } from "next/headers";
 
@@ -88,6 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Footer />
             </SmoothScroll>
             <AutoReveal />
+            <VisitTracker />
             <FloatingWhatsApp />
             <FloatingCart />
             </WishlistProvider>

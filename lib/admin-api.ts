@@ -46,6 +46,19 @@ export interface AdminAdvert { id: number; title: string; subtitle: string; pric
 export interface AdminStat { id: number; value: string; label: string; sort: number; }
 export interface AdminSetting { id: number; key: string; label: string; value: string; img: string; }
 
+export interface AnalyticsRow { label: string; count: number; }
+export interface Analytics {
+  days: number;
+  today: { views: number; visitors: number };
+  last7: { views: number; visitors: number };
+  period: { views: number; visitors: number };
+  allTime: { views: number };
+  daily: { date: string; views: number; visitors: number }[];
+  topPages: AnalyticsRow[];
+  referrers: AnalyticsRow[];
+  devices: AnalyticsRow[];
+}
+
 export interface Dashboard {
   orders: { total: number; byStatus: Record<string, number>; revenue: number };
   products: { total: number; lowStockCount: number };
@@ -56,6 +69,7 @@ export interface Dashboard {
 
 export const adminApi = {
   dashboard: () => req<Dashboard>("/dashboard"),
+  analytics: (days = 30) => req<Analytics>(`/analytics?days=${days}`),
 
   products: () => req<AdminProduct[]>("/products"),
   createProduct: (d: Partial<AdminProduct>) => req("/products", { method: "POST", body: JSON.stringify(d) }),

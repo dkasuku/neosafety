@@ -202,3 +202,15 @@ class Setting(db.Model):
 
     def __str__(self):
         return self.label or self.key
+
+
+class PageView(db.Model):
+    """One storefront page view. No IPs or personal data: `visitor` is a random
+    anonymous id generated in the browser, used only to count unique visitors."""
+    __tablename__ = "page_views"
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(255), nullable=False, index=True)
+    referrer = db.Column(db.String(120), default="")  # host only, e.g. google.com
+    visitor = db.Column(db.String(40), default="", index=True)
+    device = db.Column(db.String(10), default="desktop")  # desktop | mobile | tablet
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)

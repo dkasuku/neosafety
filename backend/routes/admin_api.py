@@ -6,10 +6,11 @@ The Next.js app calls these only from the server side, so the token never
 reaches the browser.
 """
 import hmac
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import func
 from flask import Blueprint, jsonify, request, current_app
 from extensions import db
-from models import Product, Category, Review, Order, Advert, Stat, Setting
+from models import Product, Category, Review, Order, Advert, Stat, Setting, PageView
 
 bp = Blueprint("admin_api", __name__, url_prefix="/api/admin")
 
@@ -445,3 +446,48 @@ def upload_file():
     file.save(dest)
     # return web path (uploads are served from /uploads/* via Next.js public folder)
     return jsonify({"path": f"/uploads/{filename}"})
+
+
+# ---------- visit analytics ----------
+@bp.get("/analytics")
+def analytics():
+    try:
+        days = max(1, min(365, int(request.args.get("days", 30))))
+    except ValueError:
+        days = 30
+    now = datetime.utcnow()
+    today0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    since = today0 - timedelta(days=days - 1)
+
+    def window(start):
+        q = PageView.query.filter(PageView.created_at >= start)
+        return {"views": q.count(),
+                "visitors": q.with_entities(func.count(func.distinct(PageView.visitor))).scalar() or 0}
+
+    day = func.date(PageView.created_at)
+    rows = (db.session.query(day, func.count(PageView.id), func.count(func.distinct(PageView.visitor)))
+            .filter(PageView.created_at >= since).group_by(day).all())
+    by_day = {str(d)[:10]: (v, u) for d, v, u in rows}
+    daily = []
+    for i in range(days):
+        d = (since + timedelta(days=i)).strftime("%Y-%m-%d")
+        v, u = by_day.get(d, (0, 0))
+        daily.append({"date": d, "views": v, "visitors": u})
+
+    def top(col, n=10, exclude_empty=False):
+        q = db.session.query(col, func.count(PageView.id).label("c")).filter(PageView.created_at >= since)
+        if exclude_empty:
+            q = q.filter(col != "")
+        return [{"label": k, "count": c} for k, c in q.group_by(col).order_by(func.count(PageView.id).desc()).limit(n).all()]
+
+    return jsonify({
+        "days": days,
+        "today": window(today0),
+        "last7": window(today0 - timedelta(days=6)),
+        "period": window(since),
+        "allTime": {"views": PageView.query.count()},
+        "daily": daily,
+        "topPages": top(PageView.path),
+        "referrers": top(PageView.referrer, exclude_empty=True),
+        "devices": top(PageView.device, n=3),
+    })

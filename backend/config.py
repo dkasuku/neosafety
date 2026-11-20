@@ -43,5 +43,8 @@ class Config:
     ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN") or None
     CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "public", "uploads"))
+    # Hosts treated as "this site" (not counted as external referrers).
+    OWN_HOSTS = [h.strip().removeprefix("www.") for h in os.getenv(
+        "OWN_HOSTS", "neosafetysupplies.com,frontend-production-93d8.up.railway.app,localhost").split(",")]
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MB
     WHATSAPP_NUMBER = os.getenv("WHATSAPP_NUMBER", "254707866446")
