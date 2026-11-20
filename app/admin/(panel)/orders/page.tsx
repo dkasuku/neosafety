@@ -4,7 +4,10 @@ import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrdersPage() {
+const STATUS_KEYS = ["new", "confirmed", "delivered", "cancelled"];
+
+export default async function OrdersPage({ searchParams }: { searchParams: { status?: string } }) {
+  const initialFilter = STATUS_KEYS.includes(searchParams.status || "") ? searchParams.status! : "all";
   let orders;
   try { orders = await adminApi.orders(); }
   catch (e: any) { return <Card className="p-6 text-sm text-destructive">{e.message}</Card>; }
@@ -14,7 +17,7 @@ export default async function OrdersPage() {
         <h1 className="font-display text-2xl font-extrabold text-navy">Orders</h1>
         <p className="text-sm text-muted-foreground">Update status and delivery ETA — customers see this on the Track page.</p>
       </div>
-      <OrdersTable orders={orders} />
+      <OrdersTable key={initialFilter} orders={orders} initialFilter={initialFilter} />
     </div>
   );
 }

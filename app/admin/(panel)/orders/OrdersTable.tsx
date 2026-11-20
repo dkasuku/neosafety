@@ -20,14 +20,14 @@ const STATUSES = [
   { v: "delivered", l: "Delivered" }, { v: "cancelled", l: "Cancelled" },
 ];
 
-export default function OrdersTable({ orders }: { orders: AdminOrder[] }) {
+export default function OrdersTable({ orders, initialFilter = "all" }: { orders: AdminOrder[]; initialFilter?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState<AdminOrder | null>(null);
   const [status, setStatus] = useState("new");
   const [eta, setEta] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialFilter);
   const [page, setPage] = useState(1);
   const PAGE = 10;
   const [delTarget, setDelTarget] = useState<AdminOrder | null>(null);
@@ -69,7 +69,12 @@ export default function OrdersTable({ orders }: { orders: AdminOrder[] }) {
 
       <Card>
         {shown.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">No orders here yet.</p>
+          <div className="p-8 text-center">
+            <p className="font-semibold text-navy">{orders.length === 0 ? "No orders yet" : "No orders with this status"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {orders.length === 0 ? "Orders customers place on the website will appear here." : "Try another filter above."}
+            </p>
+          </div>
         ) : (
           <>
           <Table>
