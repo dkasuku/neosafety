@@ -5,6 +5,7 @@ All endpoints live under /api/admin and require:
 The Next.js app calls these only from the server side, so the token never
 reaches the browser.
 """
+import hmac
 from datetime import datetime
 from flask import Blueprint, jsonify, request, current_app
 from extensions import db
@@ -21,7 +22,8 @@ def _guard():
         return
     auth = request.headers.get("Authorization", "")
     token = auth[7:].strip() if auth.startswith("Bearer ") else ""
-    if not token or token != current_app.config.get("ADMIN_API_TOKEN"):
+    expected = current_app.config.get("ADMIN_API_TOKEN")
+    if not expected or not token or not hmac.compare_digest(token, expected):
         return jsonify({"error": "unauthorized"}), 401
 
 

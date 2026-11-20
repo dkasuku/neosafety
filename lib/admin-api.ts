@@ -1,9 +1,10 @@
 import "server-only";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const TOKEN = process.env.ADMIN_API_TOKEN || "neo-admin-local-token";
+const TOKEN = process.env.ADMIN_API_TOKEN || "";
 
 async function req<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
+  if (!TOKEN) throw new Error("ADMIN_API_TOKEN is not set on the frontend. It must match the backend's ADMIN_API_TOKEN.");
   let r: Response;
   try {
     r = await fetch(`${API}/api/admin${path}`, {

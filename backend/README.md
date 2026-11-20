@@ -25,9 +25,10 @@ macOS/Linux: use `source venv/bin/activate` and `cp .env.example .env`.
 The API starts at http://localhost:5000 and creates `neosafety.db` in this folder.
 
 ## Admin panel
-Open **http://localhost:5000/admin** and log in with the values from `.env`:
-- Username: `admin`
-- Password: `admin123`
+The admin panel is the Next.js app at **/admin** (there is no Flask-side login).
+It signs in with `ADMIN_PASSWORD` from the frontend's `.env.local` and calls this
+API with `ADMIN_API_TOKEN`, which must match the value in this folder's `.env`.
+There are no default passwords: if these are unset, admin access is refused.
 
 Manage **Products** (price, stock, category, image, tag, featured), **Categories**,
 **Reviews** (approve/edit/delete), and **Orders** (status: new → confirmed → delivered).

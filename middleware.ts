@@ -12,8 +12,8 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin/login")) return pass();
 
   const token = req.cookies.get(COOKIE)?.value;
-  const expected = process.env.ADMIN_SESSION_TOKEN || "neo-admin-session-token";
-  if (token !== expected) {
+  const expected = process.env.ADMIN_SESSION_TOKEN;
+  if (!expected || token !== expected) {
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);
