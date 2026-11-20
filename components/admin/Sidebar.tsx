@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, Package, Tags, Star, Megaphone, FileText, ExternalLink } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Tags, Star, Megaphone, FileText, BarChart3, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/analytics", label: "Visits", icon: BarChart3 },
   { href: "/admin/products", label: "Products & Stock", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/reviews", label: "Reviews", icon: Star },

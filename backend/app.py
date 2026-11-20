@@ -16,10 +16,12 @@ def create_app():
     from routes.reviews import bp as reviews_bp
     from routes.orders import bp as orders_bp
     from routes.admin_api import bp as admin_api_bp
+    from routes.analytics import bp as analytics_bp
     app.register_blueprint(catalog_bp)
     app.register_blueprint(reviews_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(admin_api_bp)
+    app.register_blueprint(analytics_bp)
 
     # Ensure all ORM relationships are configured before first use
     from sqlalchemy.orm import configure_mappers
