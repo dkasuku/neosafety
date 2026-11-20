@@ -7,7 +7,10 @@ load_dotenv()
 def _normalize_db_url(url: str) -> str:
     # Some providers hand out postgres:// which SQLAlchemy no longer accepts.
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
+        url = url.replace("postgres://", "postgresql://", 1)
+    # SQLAlchemy 2.1+ maps bare postgresql:// to psycopg (v3); we ship psycopg2.
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
     return url
 
 

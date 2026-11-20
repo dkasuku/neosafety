@@ -2,6 +2,7 @@ Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
 Flask-Cors==4.0.1
 Flask-Migrate==4.0.7
+SQLAlchemy>=2.0,<2.1
 python-dotenv==1.0.1
 
 # Only needed if you use PostgreSQL (has prebuilt wheels for Python 3.13).
