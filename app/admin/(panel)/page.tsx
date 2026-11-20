@@ -9,15 +9,17 @@ import StatusBadge from "@/components/admin/StatusBadge";
 
 export const dynamic = "force-dynamic";
 
-function Metric({ icon: Icon, label, value, tint }: { icon: any; label: string; value: string; tint: string }) {
+function Metric({ icon: Icon, label, value, tint, href }: { icon: any; label: string; value: string; tint: string; href: string }) {
   return (
-    <Card className="p-5">
+    <Link href={href} className="block rounded-xl transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green">
+    <Card className="h-full p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{label}</p>
         <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tint}`}><Icon className="h-[18px] w-[18px]" /></span>
       </div>
       <p className="mt-3 font-display text-3xl font-extrabold text-navy">{value}</p>
     </Card>
+    </Link>
   );
 }
 
@@ -43,18 +45,20 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric icon={ShoppingBag} label="Total orders" value={String(data.orders.total)} tint="bg-green/10 text-green" />
-        <Metric icon={Banknote} label="Revenue" value={ksh(data.orders.revenue)} tint="bg-blue-100 text-blue-600" />
-        <Metric icon={Package} label="Products" value={String(data.products.total)} tint="bg-navy/10 text-navy" />
-        <Metric icon={AlertTriangle} label="Low stock" value={String(data.products.lowStockCount)} tint="bg-amber-100 text-amber-600" />
+        <Metric icon={ShoppingBag} label="Total orders" value={String(data.orders.total)} tint="bg-green/10 text-green" href="/admin/orders" />
+        <Metric icon={Banknote} label="Revenue" value={ksh(data.orders.revenue)} tint="bg-blue-100 text-blue-600" href="/admin/orders?status=delivered" />
+        <Metric icon={Package} label="Products" value={String(data.products.total)} tint="bg-navy/10 text-navy" href="/admin/products" />
+        <Metric icon={AlertTriangle} label="Low stock" value={String(data.products.lowStockCount)} tint="bg-amber-100 text-amber-600" href="/admin/products" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[["New", s.new || 0], ["Confirmed", s.confirmed || 0], ["Delivered", s.delivered || 0], ["Cancelled", s.cancelled || 0]].map(([label, n]) => (
-          <Card key={label as string} className="flex items-center justify-between p-4">
-            <span className="text-sm font-medium text-muted-foreground">{label}</span>
-            <span className="font-display text-xl font-bold text-navy">{n as number}</span>
-          </Card>
+        {([["New", "new", s.new || 0], ["Confirmed", "confirmed", s.confirmed || 0], ["Delivered", "delivered", s.delivered || 0], ["Cancelled", "cancelled", s.cancelled || 0]] as const).map(([label, key, n]) => (
+          <Link key={key} href={`/admin/orders?status=${key}`} className="block rounded-xl transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green">
+            <Card className="flex items-center justify-between p-4">
+              <span className="text-sm font-medium text-muted-foreground">{label}</span>
+              <span className="font-display text-xl font-bold text-navy">{n}</span>
+            </Card>
+          </Link>
         ))}
       </div>
 
